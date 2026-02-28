@@ -1,0 +1,45 @@
+{
+  "HomePage": {
+    "title": "Home",
+    "description": "Welcome to TNT Lures system"
+  },
+ "Navigation": {
+    "home": "Home",
+    "products": "Products",
+    "news": "News",
+    "promotions": "Offers",
+    "about": "About Us",
+    "contact": "Contact",
+    "subProducts": {
+      "nhaiHoi": "Frog Lures",
+      "caSat": "Metal Vibes",
+      "moiMem": "Soft Baits",
+      "deMay": "Reel Stands",
+      "mu": "Caps",
+      "quaTang": "Gifts"
+    }
+  },
+  "Hero": {
+    "badge": "#1 Lure Brand in Vietnam",
+    "title": "Conquer Every Water",
+    "description": "The secret weapon for explosive strikes. Optimally designed for terrains and predatory fish in Vietnam.",
+    "primaryBtn": "Explore Now",
+    "secondaryBtn": "AI Fishing Guide"
+  },
+  "Auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "googleLogin": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "submitLogin": "Sign In",
+    "submitRegister": "Sign Up"
+  }
+}

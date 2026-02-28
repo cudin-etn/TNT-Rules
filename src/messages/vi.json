@@ -1,0 +1,45 @@
+{
+  "HomePage": {
+    "title": "Trang chủ",
+    "description": "Chào mừng đến với hệ thống TNT Lures"
+  },
+  "Navigation": {
+    "home": "Trang chủ",
+    "products": "Sản phẩm",
+    "news": "Tin tức",
+    "promotions": "Khuyến mãi",
+    "about": "Giới thiệu",
+    "contact": "Liên hệ",
+    "subProducts": {
+      "nhaiHoi": "Mồi Nhái Hơi",
+      "caSat": "Mồi cá sắt",
+      "moiMem": "Mồi mềm",
+      "deMay": "Đế máy",
+      "mu": "Mũ",
+      "quaTang": "Quà tặng"
+    }
+  },
+  "Hero": {
+    "badge": "Thương Hiệu Mồi Lure Số 1 Việt Nam",
+    "title": "Chinh Phục Mọi Thủy Vực",
+    "description": "Vũ khí bí mật cho những cú strike bùng nổ. Thiết kế tối ưu cho địa hình và các loài cá săn mồi tại Việt Nam.",
+    "primaryBtn": "Khám Phá Ngay",
+    "secondaryBtn": "AI Tư Vấn Đồ Câu"
+  },
+  "Auth": {
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "fullName": "Họ và tên",
+    "gender": "Giới tính",
+    "male": "Nam",
+    "female": "Nữ",
+    "other": "Khác",
+    "googleLogin": "Tiếp tục với Google",
+    "noAccount": "Chưa có tài khoản?",
+    "hasAccount": "Đã có tài khoản?",
+    "submitLogin": "Vào hệ thống",
+    "submitRegister": "Tạo tài khoản"
+  }
+}
