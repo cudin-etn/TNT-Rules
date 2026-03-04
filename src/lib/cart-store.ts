@@ -50,7 +50,6 @@ export const useCartStore = create<CartState>()(
             quantity: 1 
           }] });
         }
-        set({ isOpen: true });
       },
       removeItem: (id) => set({ items: get().items.filter((i) => i.id !== id) }),
       updateQuantity: (id, delta) => {
@@ -61,7 +60,7 @@ export const useCartStore = create<CartState>()(
         });
       },
       totalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
-      totalPrice: () => get().items.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0),
+     totalPrice: () => get().items.reduce((acc, item) => acc + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0),
     }),
     { name: 'tnt-cart-storage' }
   )

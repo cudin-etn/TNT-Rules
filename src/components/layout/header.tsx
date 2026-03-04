@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/routing";
 import Image from "next/image";
@@ -9,16 +9,40 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { 
   Home, Fish, Newspaper, Tag, Info, PhoneCall, 
-  ChevronDown, Menu 
+  ChevronDown, Menu, LogOut, UserCircle2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { supabase } from "@/lib/supabase";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function Header() {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  // --- BẮT ĐẦU LOGIC AUTH ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => authListener.subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
+  // --- KẾT THÚC LOGIC AUTH ---
 
   const navItems = [
     { label: t("home"), href: "/", icon: Home, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-500/20" },
@@ -52,6 +76,7 @@ export function Header() {
           <div className="lg:hidden mr-2">
             <Sheet>
               <SheetTrigger asChild>
+                {/* ĐÃ TRẢ LẠI NÚT MENU GỐC */}
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -132,7 +157,34 @@ export function Header() {
 
         {/* NHÓM PHẢI: TOOLS (Gọn gàng sạch sẽ) */}
         <div className="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
-          <AuthModal />
+          
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full overflow-hidden border border-border/50 p-0 shadow-sm">
+                  {user?.user_metadata?.avatar_url ? (
+                    <Image src={user.user_metadata.avatar_url} alt="Avatar" fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center text-white font-black text-sm uppercase">
+                      {(user?.user_metadata?.full_name || user?.email || "K").charAt(0)}
+                    </div>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 mt-2">
+                <div className="px-3 py-2 border-b border-border/50 mb-1">
+                  <p className="text-sm font-bold truncate">{user?.user_metadata?.full_name || "Khách hàng"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                </div>
+                <DropdownMenuItem onClick={handleLogout} className="text-rose-500 hover:text-rose-600 focus:text-rose-600 cursor-pointer font-medium">
+                  <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <AuthModal />
+          )}
+
           <div className="h-4 w-[1px] bg-border mx-0.5 hidden sm:block" />
           <LanguageSwitcher />
           <ThemeToggle />

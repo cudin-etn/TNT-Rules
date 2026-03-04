@@ -46,8 +46,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION 2: SLIDER (Gọn gàng, không bọc thừa) */}
-      <section className="w-full max-w-5xl z-10 px-4 mt-8 md:mt-4 shrink-0">
+     {/* SECTION 2: SLIDER (Hạ z-index xuống 0 để không đè Giỏ hàng) */}
+      <section className="w-full max-w-5xl z-0 px-4 mt-8 md:mt-4 shrink-0">
         <HeroSlider />
       </section>
 

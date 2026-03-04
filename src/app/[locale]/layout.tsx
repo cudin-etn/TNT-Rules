@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { FloatingCart } from "@/components/floating-cart";
 import { CartDrawer } from "@/components/cart-drawer";
+import { FloatingAI } from "@/components/floating-ai";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,24 +46,27 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {/* Background SVG + Google Ambient Style */}
-            <div className="fixed inset-0 -z-10 h-full w-full bg-background overflow-hidden">
-              
-              {/* LỚP 1: SVG Pattern - Tăng độ đậm lên một chút (60% Light / 30% Dark) */}
-              <div 
-                className="absolute inset-0 z-0 bg-repeat opacity-60 dark:opacity-30 dark:invert transition-all duration-300"
-                style={{ backgroundImage: "url('/images/bg-pattern.svg')" }}
-              ></div>
-              
-              {/* LỚP 2: Ánh sáng góc trên trái (Tone Xanh Google) */}
-              <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-blue-400/30 dark:bg-blue-600/20 blur-[120px] mix-blend-multiply dark:mix-blend-screen transition-all duration-500"></div>
+           {/* SIÊU PHẨM BACKGROUND: VIBRANT MESH + SVG PATTERN */}
+        <div className="fixed inset-0 -z-50 h-full w-full bg-slate-50 dark:bg-[#020617] overflow-hidden pointer-events-none">
+          
+          {/* TẦNG 1: MESH GRADIENT (Lõi màu rực rỡ) */}
+          <div className="absolute inset-0 z-0">
+            <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-blue-500/40 dark:bg-blue-600/30 rounded-full blur-[120px]" />
+            <div className="absolute top-[15%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-500/40 dark:bg-fuchsia-500/30 rounded-full blur-[140px]" />
+            <div className="absolute -bottom-[10%] left-[5%] w-[45%] h-[45%] bg-orange-500/40 dark:bg-orange-600/30 rounded-full blur-[120px]" />
+            <div className="absolute -bottom-[15%] -right-[10%] w-[55%] h-[55%] bg-cyan-400/40 dark:bg-cyan-500/30 rounded-full blur-[140px]" />
+          </div>
 
-              {/* LỚP 3: Ánh sáng góc dưới phải (Tone Đỏ/Hồng Google) */}
-              <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-rose-400/30 dark:bg-rose-600/20 blur-[120px] mix-blend-multiply dark:mix-blend-screen transition-all duration-500"></div>
-              
-              {/* LỚP 4: Ép mỏng lớp phủ, XÓA HẲN backdrop-blur để không bị nhòe SVG */}
-              <div className="absolute inset-0 z-1 bg-background/20 dark:bg-background/40"></div>
-            </div>
+          {/* TẦNG 2: LỚP PHỦ ÉP MỎNG (Kìm màu lại 1 chút để dễ đọc chữ, tuyệt đối không dùng blur) */}
+          <div className="absolute inset-0 z-10 bg-white/40 dark:bg-black/40 transition-colors duration-500"></div>
+
+          {/* TẦNG 3: SVG PATTERN (Nằm trên cùng, giữ nguyên thông số chuẩn của anh) */}
+          <div 
+            className="absolute inset-0 z-20 bg-repeat opacity-60 dark:opacity-30 dark:invert transition-all duration-500"
+            style={{ backgroundImage: "url('/images/bg-pattern.svg')" }}
+          ></div>
+          
+        </div>
 
             <Header />
             
@@ -72,6 +76,7 @@ export default async function RootLayout({
             
             <Footer />
             <FloatingCart />
+            <FloatingAI />
             <CartDrawer />
           </ThemeProvider>
         </NextIntlClientProvider>
