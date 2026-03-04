@@ -27,6 +27,7 @@ interface Product {
   original_price?: number | string;
   description: string;
   images: string[] | string;
+  [key: string]: any; 
 }
 
 export default function ProductDetailPage({
@@ -173,7 +174,7 @@ export default function ProductDetailPage({
 
          {/* CTA */}
           <div className="mb-8">
-            <AddToCartGroup product={product!} />
+            <AddToCartGroup product={product as any} />
           </div>
 
           {/* CARDS */}
