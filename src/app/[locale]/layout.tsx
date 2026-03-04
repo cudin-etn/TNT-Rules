@@ -11,6 +11,7 @@ import { Footer } from "@/components/layout/footer";
 import { FloatingCart } from "@/components/floating-cart";
 import { CartDrawer } from "@/components/cart-drawer";
 import { FloatingAI } from "@/components/floating-ai";
+import { AiChatDrawer } from "@/components/ai-chat-drawer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -77,6 +78,7 @@ export default async function RootLayout({
             <Footer />
             <FloatingCart />
             <FloatingAI />
+            <AiChatDrawer />
             <CartDrawer />
           </ThemeProvider>
         </NextIntlClientProvider>

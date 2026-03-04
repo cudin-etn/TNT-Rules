@@ -126,24 +126,24 @@ BẮT BUỘC TRẢ VỀ ĐÚNG CẤU TRÚC JSON SAU (không dùng markdown \`\`\
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null));
   const message = body?.message?.trim();
-  const mode = body?.mode ?? "demo";
 
   if (!message) return NextResponse.json({ error: "Missing message" }, { status: 400 });
 
+  // Lấy dữ liệu sản phẩm từ Supabase để mồi cho AI
   const { products } = await fetchProductsForRag(message);
 
-  if (mode === "live") {
-    try {
-      const liveData = await callGemini(message, products);
-      return NextResponse.json(liveData);
-    } catch (e: any) {
-      console.error("Lỗi bao ngoài:", e.message);
-      return NextResponse.json({ 
-        text: `[Lỗi API AI]: ${e.message}. Tạm chuyển về phản hồi mặc định.`, 
-        suggestions: products.slice(0, 3).map((p) => toSuggestion(p))
-      });
-    }
+  try {
+    // LUÔN LUÔN gọi Gemini API xịn
+    const liveData = await callGemini(message, products);
+    return NextResponse.json(liveData);
+  } catch (e: any) {
+    console.error("Lỗi AI:", e.message);
+    return NextResponse.json({ 
+      text: `[Lỗi API AI]: ${e.message}. Hệ thống đang bận, anh/chị vui lòng thử lại sau nhé!`, 
+      suggestions: products.slice(0, 3).map((p) => toSuggestion(p))
+    });
   }
+
 
   return NextResponse.json({
     text: `Dạ (đang ở mode Demo), với câu hỏi "${message}", em thấy vài mẫu này rất nhạy cá:`,

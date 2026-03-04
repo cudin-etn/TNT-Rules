@@ -1,11 +1,15 @@
+"use client";
+
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Fish, ShieldCheck, ArrowRight } from "lucide-react";
 import { HeroSlider } from "@/components/hero-slider";
+import { Link } from "@/i18n/routing";
+import { useAiStore } from "@/lib/ai-store"; // Thêm Store
 
 export default function Home() {
   const t = useTranslations("Hero");
+  const openAi = useAiStore((s) => s.openAi); // Lấy lệnh mở AI
 
   return (
     <div className="relative flex flex-col items-center justify-between min-h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)] overflow-hidden bg-transparent py-6 md:py-8">
@@ -26,32 +30,32 @@ export default function Home() {
           {t("description")}
         </p>
 
-        {/* Nút bấm tự động dàn hàng ngang/dọc theo thiết bị */}
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-2 sm:px-0 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+          {/* Nút Xem Sản Phẩm */}
           <Button asChild size="lg" className="group h-14 sm:h-12 rounded-2xl sm:rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white border-0 px-8 text-sm font-bold shadow-xl shadow-orange-500/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-orange-500/40">
             <Link href="/products" className="flex items-center justify-center">
               <Fish className="mr-2 h-5 w-5 transition-transform duration-500 group-hover:scale-125 group-hover:-rotate-12" />
               {t("primaryBtn")}
-              {/* Mũi tên chỉ hiện trên màn hình lớn */}
               <ArrowRight className="ml-2 h-4 w-4 opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 hidden sm:inline-block" />
             </Link>
           </Button>
           
-          <Button asChild size="lg" className="group h-14 sm:h-12 rounded-2xl sm:rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 px-8 text-sm font-bold shadow-xl shadow-purple-500/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-purple-500/40">
-            <Link href="/ai-chat" className="flex items-center justify-center">
-              <Sparkles className="mr-2 h-5 w-5 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" /> 
-              {t("secondaryBtn")}
-            </Link>
+          {/* Nút AI Tư Vấn - Đã sửa thành mở Modal */}
+          <Button 
+            onClick={openAi} 
+            size="lg" 
+            className="group h-14 sm:h-12 rounded-2xl sm:rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 px-8 text-sm font-bold shadow-xl shadow-purple-500/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-purple-500/40 cursor-pointer"
+          >
+            <Sparkles className="mr-2 h-5 w-5 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" /> 
+            {t("secondaryBtn")}
           </Button>
         </div>
       </section>
 
-     {/* SECTION 2: SLIDER (Hạ z-index xuống 0 để không đè Giỏ hàng) */}
       <section className="w-full max-w-5xl z-0 px-4 mt-8 md:mt-4 shrink-0">
         <HeroSlider />
       </section>
 
-      {/* Trang trí nền */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.03)_0%,transparent_70%)] pointer-events-none -z-10" />
     </div>
   );

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, Send, Loader2, Sparkles, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { Link } from "@/i18n/routing";
+import { useAiStore } from "@/lib/ai-store"; // Thêm Store
 
 type Suggestion = {
   id?: string | number;
@@ -35,17 +36,10 @@ async function readJsonSafe(res: Response): Promise<{
   }
 }
 
-export function AiChatDrawer({
-  open,
-  onClose,
-  modeDefault = "demo",
-}: {
-  open: boolean;
-  onClose: () => void;
-  modeDefault?: "demo" | "live";
-}) {
+export function AiChatDrawer() {
+  const { isOpen, closeAi } = useAiStore(); // Lấy trạng thái từ Store trung tâm
   const addItem = useCartStore((s) => s.addItem);
-  const [mode, setMode] = useState<"demo" | "live">(modeDefault);
+  
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
@@ -78,7 +72,7 @@ export function AiChatDrawer({
       const res = await fetch("/api/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg, mode }),
+        body: JSON.stringify({ message: msg }),
       });
       const { ok, status, bodyText, json } = await readJsonSafe(res);
 
@@ -113,7 +107,7 @@ export function AiChatDrawer({
 
   return (
     <AnimatePresence>
-      {open && (
+      {isOpen && (
         <>
           {/* Overlay */}
           <motion.div
@@ -121,7 +115,7 @@ export function AiChatDrawer({
             animate={{ opacity: 0.6 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/80 z-[80] backdrop-blur-sm"
-            onClick={onClose}
+            onClick={closeAi}
           />
 
           {/* Modal Container */}
@@ -132,58 +126,42 @@ export function AiChatDrawer({
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
             className="fixed top-4 bottom-4 right-4 w-[calc(100%-2rem)] sm:w-[440px] z-[90] rounded-[24px] shadow-2xl flex flex-col overflow-hidden border border-white/20 dark:border-white/10"
           >
-            {/* LỚP NỀN MESH GRADIENT GIỐNG DASHBOARD */}
+            {/* Background Mesh Gradient */}
             <div className="absolute inset-0 z-0 bg-slate-50 dark:bg-[#0f172a] pointer-events-none">
               <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-blue-500/30 dark:bg-blue-500/40 rounded-full blur-[100px]" />
               <div className="absolute top-[15%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-500/30 dark:bg-fuchsia-400/30 rounded-full blur-[120px]" />
               <div className="absolute -bottom-[10%] left-[5%] w-[45%] h-[45%] bg-orange-500/30 dark:bg-orange-500/30 rounded-full blur-[100px]" />
-              {/* Lớp kính mờ phủ nhẹ lên gradient để làm dịu */}
               <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-3xl" />
             </div>
 
-            {/* NỘI DUNG CHÍNH (Nằm trên nền Gradient) */}
             <div className="relative z-10 flex flex-col h-full w-full">
-              
               {/* Header */}
               <div className="p-4 border-b border-white/30 dark:border-white/10 flex items-center justify-between gap-3 shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
                 <div className="min-w-0">
-                  <div className="text-[15px] font-black tracking-tight text-slate-900 dark:text-white">
+                  <div className="text-[15px] font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     AI Tư vấn sản phẩm
                   </div>
                   <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
-                    RAG Supabase • {mode.toUpperCase()}
+                    Hệ thống tư vấn thông minh TNT Lures
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="h-9 px-2.5 rounded-xl bg-white/80 dark:bg-white/10 border border-white/50 dark:border-white/10 flex items-center gap-2 shadow-sm backdrop-blur-md">
-                    <Sparkles className="h-3.5 w-3.5 text-orange-500" />
-                    <select
-                      value={mode}
-                      onChange={(e) => setMode(e.target.value as any)}
-                      className="bg-transparent outline-none text-[12px] font-bold text-slate-700 dark:text-slate-200 cursor-pointer"
-                    >
-                      <option value="demo">demo</option>
-                      <option value="live">live</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={onClose}
-                    className="h-9 w-9 rounded-xl bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/20 border border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center transition-colors shadow-sm backdrop-blur-md"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+                <button
+                  onClick={closeAi}
+                  className="h-9 w-9 rounded-xl bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/20 border border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center transition-colors shadow-sm"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
 
-              {/* Gợi ý câu hỏi nhanh */}
+              {/* Quick Prompts */}
               <div className="p-3 border-b border-white/20 dark:border-white/5 shrink-0">
                 <div className="flex flex-wrap gap-2">
                   {quickPrompts.map((p) => (
                     <button
                       key={p}
                       onClick={() => send(p)}
-                      className="text-[11px] font-semibold px-3 py-1.5 rounded-full border bg-white/60 hover:bg-white dark:bg-white/5 border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-300 dark:hover:bg-white/10 transition-colors shadow-sm backdrop-blur-md"
+                      className="text-[11px] font-semibold px-3 py-1.5 rounded-full border bg-white/60 hover:bg-white dark:bg-white/5 border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-300 transition-colors shadow-sm backdrop-blur-md"
                     >
                       {p}
                     </button>
@@ -191,96 +169,60 @@ export function AiChatDrawer({
                 </div>
               </div>
 
-              {/* Khu vực Chat */}
-<div className="flex-1 p-4 space-y-4 overflow-y-auto scroll-smooth">
-  {messages.map((m, idx) => {
-    const isAI = m.role === "assistant";
-    return (
-      <div
-        key={idx}
-        className={`max-w-[85%] p-3.5 shadow-sm ${
-          isAI
-            ? "mr-auto bg-gradient-to-br from-orange-500/90 to-rose-500/90 rounded-2xl rounded-bl-sm text-white"
-            : "ml-auto bg-gradient-to-br from-blue-500/90 to-cyan-500/90 rounded-2xl rounded-br-sm text-white"
-        }`}
-      >
-        <div className="whitespace-pre-wrap font-medium text-[13.5px] leading-relaxed">{m.text}</div>
-      </div>
-    );
-  })}
-</div>
+              {/* Chat Messages */}
+              <div className="flex-1 p-4 space-y-4 overflow-y-auto scroll-smooth">
+                {messages.map((m, idx) => {
+                  const isAI = m.role === "assistant";
+                  return (
+                    <div
+                      key={idx}
+                      className={`max-w-[85%] p-3.5 shadow-sm ${
+                        isAI
+                          ? "mr-auto bg-gradient-to-br from-orange-500/90 to-rose-500/90 rounded-2xl rounded-bl-sm text-white"
+                          : "ml-auto bg-gradient-to-br from-blue-500/90 to-cyan-500/90 rounded-2xl rounded-br-sm text-white"
+                      }`}
+                    >
+                      <div className="whitespace-pre-wrap font-medium text-[13.5px] leading-relaxed">{m.text}</div>
+                    </div>
+                  );
+                })}
+              </div>
 
-              {/* Khu vực Đề xuất sản phẩm */}
+              {/* Product Suggestions */}
               <div className="p-4 border-t border-white/30 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[13px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <ShoppingCart className="h-4 w-4 text-orange-500" />
                     Gợi ý cho bạn
                   </div>
-                  <Link
-                    href="/products"
-                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                  >
+                  <Link href="/products" className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
                     Xem kho mồi
                   </Link>
                 </div>
 
                 {suggestions.length === 0 ? (
                   <div className="text-[12px] font-medium text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-white/5 p-3 rounded-xl border border-dashed border-slate-300 dark:border-white/20 text-center">
-                    AI sẽ đề xuất 1–3 sản phẩm tại đây.
+                    AI sẽ đề xuất sản phẩm tại đây.
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-[190px] overflow-y-auto pr-1">
                     {suggestions.slice(0, 3).map((s, i) => (
-                      // Kỹ thuật Border Gradient cho Thẻ Sản Phẩm
-                      <div
-                        key={`${s.slug ?? s.id ?? i}`}
-                        className="rounded-xl p-[1px] bg-gradient-to-br from-orange-500/30 to-rose-500/30 shadow-sm"
-                      >
+                      <div key={`${s.slug ?? s.id ?? i}`} className="rounded-xl p-[1px] bg-gradient-to-br from-orange-500/30 to-rose-500/30 shadow-sm">
                         <div className="h-full w-full rounded-[11px] bg-white/95 dark:bg-slate-900/95 p-3 flex flex-col gap-2">
                           <div className="flex items-start justify-between gap-2">
-                            <div className="font-bold text-[13px] text-slate-900 dark:text-white leading-tight">
-                              {s.name}
-                            </div>
-                            <div className="font-black text-[12px] text-orange-600 dark:text-orange-500 shrink-0">
-                              {(Number(s.price) || 0).toLocaleString("vi-VN")} ₫
-                            </div>
+                            <div className="font-bold text-[13px] text-slate-900 dark:text-white leading-tight">{s.name}</div>
+                            <div className="font-black text-[12px] text-orange-600 dark:text-orange-500">{(Number(s.price) || 0).toLocaleString("vi-VN")} ₫</div>
                           </div>
-                          
-                          {s.reason && (
-                            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
-                              {s.reason}
-                            </div>
-                          )}
-
+                          {s.reason && <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{s.reason}</div>}
                           <div className="flex items-center gap-2 mt-1">
                             {s.slug ? (
-                              <Link
-                                href={`/products/${s.slug}`}
-                                className="h-8 px-4 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 font-bold text-[11px] transition-colors inline-flex items-center text-slate-700 dark:text-slate-200"
-                              >
-                                Chi tiết
-                              </Link>
+                              <Link href={`/products/${s.slug}`} className="h-8 px-4 rounded-lg bg-slate-100 dark:bg-white/5 font-bold text-[11px] flex items-center text-slate-700 dark:text-slate-200">Chi tiết</Link>
                             ) : (
-                              <button
-                                className="h-8 px-4 rounded-lg bg-slate-100 dark:bg-white/5 font-bold text-[11px] text-slate-400 cursor-not-allowed"
-                                disabled
-                              >
-                                Chi tiết
-                              </button>
+                              <button className="h-8 px-4 rounded-lg bg-slate-100 font-bold text-[11px] text-slate-400" disabled>Chi tiết</button>
                             )}
-
                             <button
-                              onClick={() =>
-                                addItem({
-                                  id: s.id ?? s.slug ?? `${i}`,
-                                  name: s.name,
-                                  slug: s.slug ?? undefined,
-                                  price: Number(s.price) || 0,
-                                  image_url: s.image,
-                                } as any)
-                              }
-                              className="h-8 flex-1 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[11px] inline-flex items-center justify-center transition-transform hover:-translate-y-0.5 shadow-md shadow-orange-500/20"
+                              onClick={() => addItem({ id: s.id ?? s.slug ?? `${i}`, name: s.name, slug: s.slug ?? undefined, price: Number(s.price) || 0, image_url: s.image } as any)}
+                              className="h-8 flex-1 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[11px] shadow-md shadow-orange-500/20 transition-transform hover:-translate-y-0.5"
                             >
                               Thêm vào giỏ
                             </button>
@@ -292,31 +234,24 @@ export function AiChatDrawer({
                 )}
               </div>
 
-              {/* Khu vực Nhập tin nhắn */}
+              {/* Input Area */}
               <div className="p-3 border-t border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shrink-0">
                 <div className="flex items-center gap-2">
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Nhập câu hỏi (VD: mồi câu cá lóc)..."
-                    className="flex-1 h-11 px-4 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-[13px] shadow-inner transition-all font-medium text-slate-900 dark:text-white placeholder:text-slate-400"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") send(input);
-                    }}
+                    placeholder="Nhập câu hỏi..."
+                    className="flex-1 h-11 px-4 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 outline-none focus:border-orange-500 text-[13px] shadow-inner font-medium"
+                    onKeyDown={(e) => { if (e.key === "Enter") send(input); }}
                   />
                   <button
                     onClick={() => send(input)}
-                    className="h-11 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-200 dark:text-slate-900 font-bold text-[13px] inline-flex items-center justify-center transition-all shadow-md shrink-0 hover:-translate-y-0.5"
+                    className="h-11 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 font-bold text-[13px] transition-all shadow-md hover:-translate-y-0.5"
                   >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
-
             </div>
           </motion.aside>
         </>
