@@ -207,9 +207,15 @@ export function CartDrawer() {
                     </span>
                   </div>
 
-                  <Button className="w-full h-12 rounded-xl font-black text-[13px] bg-gradient-to-r from-orange-500 to-rose-500 text-white border-0 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all hover:-translate-y-0.5">
-                    Thanh toán
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                  <Button 
+                    onClick={() => {
+                      closeCart();
+                      router.push("/checkout");
+                    }}
+                    className="group w-full h-12 rounded-xl font-black text-[13px] bg-gradient-to-r from-orange-500 to-rose-500 text-white border-0 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all hover:-translate-y-0.5"
+                  >
+                    Thanh toán ngay
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </div>
               )}

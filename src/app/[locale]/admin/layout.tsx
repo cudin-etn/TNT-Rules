@@ -14,10 +14,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+// Tìm đoạn useEffect này (khoảng dòng 18):
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) router.replace("/");
-      else setLoading(false);
+      // TẠM THỜI: Comment dòng này lại để anh vào xem Admin mà không cần login
+      // if (!session) router.replace("/"); 
+      // else setLoading(false);
+      setLoading(false); // Ép nó luôn cho vào để anh demo cho nhanh
     });
   }, [router]);
 

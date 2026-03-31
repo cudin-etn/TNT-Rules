@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, Send, Loader2, Sparkles, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { Link } from "@/i18n/routing";
-import { useAiStore } from "@/lib/ai-store"; // Thêm Store
+import { useAiStore } from "@/lib/ai-store";
 
 type Suggestion = {
   id?: string | number;
@@ -16,8 +16,17 @@ type Suggestion = {
   reason?: string;
 };
 
-type ApiResp = { text: string; suggestions: Suggestion[] };
-type Msg = { role: "user" | "assistant"; text: string };
+type ApiResp = { 
+  text: string; 
+  suggestions: Suggestion[];
+  order?: { code: string; total: number } 
+};
+
+type Msg = { 
+  role: "user" | "assistant"; 
+  text: string;
+  order?: { code: string; total: number }
+};
 
 async function readJsonSafe(res: Response): Promise<{
   ok: boolean;
@@ -37,7 +46,7 @@ async function readJsonSafe(res: Response): Promise<{
 }
 
 export function AiChatDrawer() {
-  const { isOpen, closeAi } = useAiStore(); // Lấy trạng thái từ Store trung tâm
+  const { isOpen, closeAi } = useAiStore();
   const addItem = useCartStore((s) => s.addItem);
   
   const [input, setInput] = useState("");
@@ -69,10 +78,13 @@ export function AiChatDrawer() {
     setInput("");
 
     try {
+      // Lấy lịch sử chat hiện tại để gửi kèm cho AI
+      const historyToSend = messages.map(m => ({ role: m.role, text: m.text }));
+
       const res = await fetch("/api/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg }),
+        body: JSON.stringify({ message: msg, history: historyToSend }),
       });
       const { ok, status, bodyText, json } = await readJsonSafe(res);
 
@@ -81,7 +93,7 @@ export function AiChatDrawer() {
           ...prev,
           {
             role: "assistant",
-            text: `AI API lỗi (${status}).\nResponse: ${bodyText.slice(0, 500)}\n\nTip: kiểm tra route /src/app/api/ai-chat/route.ts và restart dev server.`,
+            text: `AI API lỗi (${status}). Vui lòng thử lại sau.`,
           },
         ]);
         setSuggestions([]);
@@ -89,9 +101,15 @@ export function AiChatDrawer() {
       }
 
       const data = (json ?? {}) as ApiResp;
+      
+      // ĐÃ FIX: Lưu cả nội dung chữ và dữ liệu mã QR vào state
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: data.text ?? "(không có nội dung)" },
+        { 
+          role: "assistant", 
+          text: data.text ?? "(không có nội dung)",
+          order: data.order 
+        },
       ]);
       setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
     } catch (e: any) {
@@ -109,7 +127,6 @@ export function AiChatDrawer() {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.6 }}
@@ -118,7 +135,6 @@ export function AiChatDrawer() {
             onClick={closeAi}
           />
 
-          {/* Modal Container */}
           <motion.aside
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -126,7 +142,6 @@ export function AiChatDrawer() {
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
             className="fixed top-4 bottom-4 right-4 w-[calc(100%-2rem)] sm:w-[440px] z-[90] rounded-[24px] shadow-2xl flex flex-col overflow-hidden border border-white/20 dark:border-white/10"
           >
-            {/* Background Mesh Gradient */}
             <div className="absolute inset-0 z-0 bg-slate-50 dark:bg-[#0f172a] pointer-events-none">
               <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-blue-500/30 dark:bg-blue-500/40 rounded-full blur-[100px]" />
               <div className="absolute top-[15%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-500/30 dark:bg-fuchsia-400/30 rounded-full blur-[120px]" />
@@ -135,7 +150,6 @@ export function AiChatDrawer() {
             </div>
 
             <div className="relative z-10 flex flex-col h-full w-full">
-              {/* Header */}
               <div className="p-4 border-b border-white/30 dark:border-white/10 flex items-center justify-between gap-3 shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
                 <div className="min-w-0">
                   <div className="text-[15px] font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -146,30 +160,22 @@ export function AiChatDrawer() {
                     Hệ thống tư vấn thông minh TNT Lures
                   </div>
                 </div>
-                <button
-                  onClick={closeAi}
-                  className="h-9 w-9 rounded-xl bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/20 border border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center transition-colors shadow-sm"
-                >
+                <button onClick={closeAi} className="h-9 w-9 rounded-xl bg-white/80 hover:bg-white dark:bg-white/10 dark:hover:bg-white/20 border border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-200 inline-flex items-center justify-center transition-colors shadow-sm">
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              {/* Quick Prompts */}
               <div className="p-3 border-b border-white/20 dark:border-white/5 shrink-0">
                 <div className="flex flex-wrap gap-2">
                   {quickPrompts.map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => send(p)}
-                      className="text-[11px] font-semibold px-3 py-1.5 rounded-full border bg-white/60 hover:bg-white dark:bg-white/5 border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-300 transition-colors shadow-sm backdrop-blur-md"
-                    >
+                    <button key={p} onClick={() => send(p)} className="text-[11px] font-semibold px-3 py-1.5 rounded-full border bg-white/60 hover:bg-white dark:bg-white/5 border-white/50 dark:border-white/10 text-slate-700 dark:text-slate-300 transition-colors shadow-sm backdrop-blur-md">
                       {p}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Chat Messages */}
+              {/* ĐÃ FIX: Chỉ giữ lại MỘT khối render tin nhắn */}
               <div className="flex-1 p-4 space-y-4 overflow-y-auto scroll-smooth">
                 {messages.map((m, idx) => {
                   const isAI = m.role === "assistant";
@@ -183,12 +189,25 @@ export function AiChatDrawer() {
                       }`}
                     >
                       <div className="whitespace-pre-wrap font-medium text-[13.5px] leading-relaxed">{m.text}</div>
+                      
+                      {/* ĐÃ FIX: Hiển thị mã QR đẹp lộng lẫy nếu có Đơn Hàng */}
+                      {m.order && (
+                        <div className="mt-4 p-4 bg-white rounded-xl shadow-inner text-center animate-in zoom-in duration-300 text-slate-900">
+                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Quét mã thanh toán</p>
+                          <img 
+                            src={`https://img.vietqr.io/image/970422-7901888881988-compact2.png?amount=${m.order.total}&addInfo=${m.order.code}&accountName=TNT LURES`}
+                            alt="QR"
+                            className="w-full max-w-[150px] mx-auto rounded-lg border border-slate-200"
+                          />
+                          <p className="text-orange-600 font-black mt-2 text-sm">{m.order.total.toLocaleString("vi-VN")} ₫</p>
+                          <p className="text-slate-600 font-bold text-[11px] mt-0.5">Mã đơn: {m.order.code}</p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
 
-              {/* Product Suggestions */}
               <div className="p-4 border-t border-white/30 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[13px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -220,10 +239,7 @@ export function AiChatDrawer() {
                             ) : (
                               <button className="h-8 px-4 rounded-lg bg-slate-100 font-bold text-[11px] text-slate-400" disabled>Chi tiết</button>
                             )}
-                            <button
-                              onClick={() => addItem({ id: s.id ?? s.slug ?? `${i}`, name: s.name, slug: s.slug ?? undefined, price: Number(s.price) || 0, image_url: s.image } as any)}
-                              className="h-8 flex-1 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[11px] shadow-md shadow-orange-500/20 transition-transform hover:-translate-y-0.5"
-                            >
+                            <button onClick={() => addItem({ id: s.id ?? s.slug ?? `${i}`, name: s.name, slug: s.slug ?? undefined, price: Number(s.price) || 0, image_url: s.image } as any)} className="h-8 flex-1 rounded-lg bg-gradient-to-r from-orange-500 to-rose-500 text-white font-bold text-[11px] shadow-md shadow-orange-500/20 transition-transform hover:-translate-y-0.5">
                               Thêm vào giỏ
                             </button>
                           </div>
@@ -234,20 +250,16 @@ export function AiChatDrawer() {
                 )}
               </div>
 
-              {/* Input Area */}
               <div className="p-3 border-t border-white/30 dark:border-white/10 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shrink-0">
                 <div className="flex items-center gap-2">
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Nhập câu hỏi..."
-                    className="flex-1 h-11 px-4 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 outline-none focus:border-orange-500 text-[13px] shadow-inner font-medium"
+                    className="flex-1 h-11 px-4 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 outline-none focus:border-orange-500 text-[13px] shadow-inner font-medium text-slate-900 dark:text-white"
                     onKeyDown={(e) => { if (e.key === "Enter") send(input); }}
                   />
-                  <button
-                    onClick={() => send(input)}
-                    className="h-11 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 font-bold text-[13px] transition-all shadow-md hover:-translate-y-0.5"
-                  >
+                  <button onClick={() => send(input)} className="h-11 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 font-bold text-[13px] transition-all shadow-md hover:-translate-y-0.5">
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </button>
                 </div>

@@ -1,37 +1,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-type ProductRow = {
-  id: string | number; name?: string | null; slug?: string | null;
-  price?: number | string | null; category?: string | null;
-  description?: string | null; images?: unknown; image_url?: unknown;
-};
+// Khởi tạo Supabase Admin để chèn đơn hàng
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
 function getFirstImageUrl(images: unknown): string {
   const fallback = "/images/placeholder.png";
   if (!images) return fallback;
-  if (Array.isArray(images)) {
-    const first = images.find((x) => typeof x === "string" && x.trim() !== "");
-    return typeof first === "string" ? first.trim() : fallback;
-  }
+  if (Array.isArray(images)) return typeof images[0] === "string" ? images[0] : fallback;
   if (typeof images === "string") {
-    const s = images.trim();
-    if (!s) return fallback;
-    if (s.startsWith("[") && s.endsWith("]")) {
-      try {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed)) {
-          const first = parsed.find((x) => typeof x === "string" && x.trim() !== "");
-          return typeof first === "string" ? first.trim() : fallback;
-        }
-      } catch {}
+    if (images.startsWith("[")) {
+      try { const p = JSON.parse(images); return Array.isArray(p) && p[0] ? p[0] : fallback; } catch {}
     }
-    return s;
+    return images;
   }
   return fallback;
 }
 
-function toSuggestion(p: ProductRow, reason?: string) {
+function toSuggestion(p: any, reason?: string) {
   return {
     id: p.id, name: String(p.name ?? "Sản phẩm"), slug: p.slug ?? null,
     price: Number(p.price) || 0, image: getFirstImageUrl(p.images ?? p.image_url), reason,
@@ -39,114 +27,112 @@ function toSuggestion(p: ProductRow, reason?: string) {
 }
 
 async function fetchProductsForRag(query: string) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !serviceKey) return { products: [] as ProductRow[] };
-
-  const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   const kw = query.trim();
-  
-  const { data, error } = await supabase
-    .from("products")
-    .select("id,name,slug,price,category,description,images,image_url")
-    .or(`name.ilike.%${kw}%,slug.ilike.%${kw}%,category.ilike.%${kw}%`)
-    .limit(8);
-
+  const { data, error } = await supabase.from("products").select("*").or(`name.ilike.%${kw}%,category.ilike.%${kw}%`).limit(8);
   if (error || !data || data.length === 0) {
     const { data: fallback } = await supabase.from("products").select("*").limit(8);
-    return { products: (fallback ?? []) as ProductRow[] };
+    return { products: fallback ?? [] };
   }
-  return { products: data as ProductRow[] };
+  return { products: data };
 }
 
-async function callGemini(userMessage: string, products: ProductRow[]) {
+// ĐÃ SỬA: Nhận thêm biến history
+async function callGemini(userMessage: string, products: any[], history: any[]) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Thiếu GEMINI_API_KEY");
 
-  // Rút gọn bối cảnh để gửi đi
-  const context = products.map((p) => ({
-    id: p.id, name: p.name, slug: p.slug, price: Number(p.price) || 0, description: p.description,
-  }));
+  const context = products.map((p) => ({ id: p.id, name: p.name, price: Number(p.price) || 0 }));
 
-  // Gộp toàn bộ lệnh hệ thống và câu hỏi thành 1 chuỗi văn bản duy nhất (an toàn 100%)
-const prompt = `Bạn là chuyên viên tư vấn của shop đồ câu TNT Lures.
-NGUYÊN TẮC TỐI THƯỢNG:
-1. CHỈ tư vấn về: đồ câu, mồi giả, kỹ thuật câu, địa hình, các loại cá săn mồi, và thông tin sản phẩm của shop.
-2. TỪ CHỐI MỌI CÂU HỎI NGOÀI LỀ (như lập trình, máy tính, Mac mini, chính trị, v.v.). Nếu khách hỏi ngoài lề, hãy lịch sự từ chối và lái câu chuyện về đồ câu. 
-   (Ví dụ: "Dạ em chỉ là AI tư vấn mồi câu của TNT Lures nên không rành về vấn đề này ạ. Anh/chị có đang tìm mồi câu cá lóc không?")
-3. CHỈ ĐƯỢC CHỌN SẢN PHẨM TRONG DANH SÁCH CÓ SẴN SAU: ${JSON.stringify(context)}.
+  const systemPrompt = `Bạn là nhân viên bán hàng xuất sắc của TNT Lures. 
+Danh sách sản phẩm hiện có: ${JSON.stringify(context)}.
 
-Câu hỏi của khách: "${userMessage}"
+NHIỆM VỤ ĐẶC BIỆT (CHỐT ĐƠN):
+Nếu khách có ý định mua hàng VÀ cung cấp ĐỦ thông tin (Tên, SĐT, Địa chỉ giao hàng) dựa trên toàn bộ lịch sử trò chuyện, hãy kích hoạt lệnh tạo đơn. Nếu thiếu thông tin, hãy hỏi thêm.
 
-BẮT BUỘC TRẢ VỀ ĐÚNG CẤU TRÚC JSON SAU (không dùng markdown \`\`\`json):
+BẠN PHẢI TRẢ VỀ CHUẨN JSON SAU:
 {
-  "reply": "câu trả lời tư vấn hoặc từ chối của bạn",
-  "suggestions": [
-    {"id": "id sản phẩm", "name": "tên", "slug": "slug", "price": 100000, "reason": "lý do gợi ý ngắn gọn"}
-  ]
+  "reply": "Câu trả lời của bạn (Nếu tạo đơn, hãy báo tổng tiền và bảo khách quét mã QR bên dưới)",
+  "suggestions": [ {"id": "id sản phẩm", "reason": "lý do"} ],
+  "order_action": {
+    "is_ordering": true hoặc false,
+    "customer_name": "Tên khách",
+    "customer_phone": "SĐT",
+    "customer_address": "Địa chỉ",
+    "items": [ {"id": "id sản phẩm", "quantity": 1, "price": 100000} ]
+  }
 }`;
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }]
-    })
+  // 1. CHUYỂN ĐỔI LỊCH SỬ CHAT SANG ĐỊNH DẠNG CỦA GEMINI
+  const formattedContents = history
+    .filter((m: any) => m.role === "user" || m.role === "assistant")
+    .map((m: any) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.text }]
+    }));
+
+  // 2. NHÉT CÂU HỎI MỚI CỦA KHÁCH + SYSTEM PROMPT VÀO CUỐI
+  formattedContents.push({
+    role: "user",
+    parts: [{ text: `[HƯỚNG DẪN CỦA HỆ THỐNG]:\n${systemPrompt}\n\n[KHÁCH HÀNG NÓI]: "${userMessage}"` }]
   });
 
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents: formattedContents, generationConfig: { response_mime_type: "application/json" } })
+  });
+
+  if (!res.ok) throw new Error("Lỗi gọi Google API");
   const data = await res.json();
-  
-  // IN LỖI RA TERMINAL NẾU GOOGLE TỪ CHỐI API
-  if (!res.ok) {
-    console.error("====== LỖI TỪ GOOGLE GEMINI ======\n", JSON.stringify(data, null, 2));
-    throw new Error(data?.error?.message || "Lỗi kết nối Gemini");
+  const outputText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parsed = JSON.parse(outputText);
+
+  let orderResult = null;
+
+  if (parsed.order_action && parsed.order_action.is_ordering) {
+    const action = parsed.order_action;
+    const orderCode = "TNT-" + Math.floor(10000 + Math.random() * 90000);
+    const totalAmount = action.items.reduce((sum: number, item: any) => sum + (item.quantity * item.price), 0);
+
+    const { data: newOrder, error } = await supabase.from("orders").insert({
+      order_code: orderCode,
+      customer_name: action.customer_name || "Khách mua qua AI",
+      customer_phone: action.customer_phone || "",
+      customer_address: action.customer_address || "",
+      total_amount: totalAmount,
+      status: "pending",
+      ai_tags: ["Chốt qua AI"]
+    }).select().single();
+
+    if (!error && newOrder) {
+      const orderItems = action.items.map((i: any) => ({
+        order_id: newOrder.id, product_id: i.id, product_name: "Sản phẩm", quantity: i.quantity, price: i.price
+      }));
+      await supabase.from("order_items").insert(orderItems);
+      orderResult = { code: orderCode, total: totalAmount };
+    }
   }
 
-  let outputText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!outputText) throw new Error("AI không trả về dữ liệu");
+  const suggestions = parsed.suggestions ? parsed.suggestions.slice(0,2).map((s: any) => {
+    const found = products.find(p => p.id === s.id);
+    return found ? toSuggestion(found, s.reason) : null;
+  }).filter(Boolean) : [];
 
-  // Vặt sạch râu ria markdown để Next.js không bị lỗi Parse
-  outputText = outputText.replace(/```json/g, "").replace(/```/g, "").trim();
-  const parsed = JSON.parse(outputText);
-  
-  const suggestions = Array.isArray(parsed.suggestions)
-    ? parsed.suggestions.slice(0, 3).map((s: any) => {
-        const found = products.find((p) => String(p.id) === String(s.id) || p.slug === s.slug);
-        return {
-          id: s.id, name: String(s.name ?? found?.name), slug: s.slug ?? found?.slug ?? null,
-          price: Number(s.price) || 0, reason: s.reason,
-          image: found ? getFirstImageUrl(found.images ?? found.image_url) : "/images/placeholder.png",
-        };
-      })
-    : products.slice(0, 3).map((p) => toSuggestion(p));
-
-  return { text: String(parsed.reply), suggestions };
+  return { text: String(parsed.reply), suggestions, order: orderResult };
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => null));
+  const body = await req.json().catch(() => null);
   const message = body?.message?.trim();
+  // LẤY LỊCH SỬ CHAT TỪ FRONTEND (Mặc định là mảng rỗng nếu chưa có)
+  const history = body?.history || []; 
 
   if (!message) return NextResponse.json({ error: "Missing message" }, { status: 400 });
 
-  // Lấy dữ liệu sản phẩm từ Supabase để mồi cho AI
   const { products } = await fetchProductsForRag(message);
-
   try {
-    // LUÔN LUÔN gọi Gemini API xịn
-    const liveData = await callGemini(message, products);
+    const liveData = await callGemini(message, products, history);
     return NextResponse.json(liveData);
   } catch (e: any) {
-    console.error("Lỗi AI:", e.message);
-    return NextResponse.json({ 
-      text: `[Lỗi API AI]: ${e.message}. Hệ thống đang bận, anh/chị vui lòng thử lại sau nhé!`, 
-      suggestions: products.slice(0, 3).map((p) => toSuggestion(p))
-    });
+    return NextResponse.json({ text: `Lỗi AI: ${e.message}`, suggestions: [] });
   }
-
-
-  return NextResponse.json({
-    text: `Dạ (đang ở mode Demo), với câu hỏi "${message}", em thấy vài mẫu này rất nhạy cá:`,
-    suggestions: products.slice(0, 3).map((p) => toSuggestion(p, "Mồi nhạy, chống vướng tốt."))
-  });
 }

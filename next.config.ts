@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      // BỔ SUNG THÊM ĐOẠN NÀY ĐỂ MỞ KHÓA DOMAIN VIETQR
+      {
+        protocol: 'https',
+        hostname: 'img.vietqr.io',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
