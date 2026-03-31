@@ -203,7 +203,10 @@ export default function AdminOrdersPage() {
                               Gửi GHTK
                             </button>
                           )}
-                          <button className="h-8 px-3 rounded-xl bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200 font-semibold text-[11px] hover:opacity-80 transition">
+                          <button 
+                            onClick={() => alert(`📦 CHI TIẾT ĐƠN HÀNG: ${o.order_code}\n👤 Khách hàng: ${o.customer_name}\n📞 SĐT: ${o.customer_phone}\n✨ Phân tích AI: ${o.ai_tags?.join(", ") || "Không có"}\n\n*Giao diện CRM chi tiết đang được hoàn thiện ở Phase 2.*`)}
+                            className="h-8 px-3 rounded-xl bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-200 font-semibold text-[11px] hover:opacity-80 transition"
+                          >
                             Xem
                           </button>
                         </div>

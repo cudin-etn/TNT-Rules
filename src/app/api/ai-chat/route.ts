@@ -47,7 +47,9 @@ async function callGemini(userMessage: string, products: any[], history: any[]) 
 Danh sách sản phẩm hiện có: ${JSON.stringify(context)}.
 
 NHIỆM VỤ ĐẶC BIỆT (CHỐT ĐƠN):
-Nếu khách có ý định mua hàng VÀ cung cấp ĐỦ thông tin (Tên, SĐT, Địa chỉ giao hàng) dựa trên toàn bộ lịch sử trò chuyện, hãy kích hoạt lệnh tạo đơn. Nếu thiếu thông tin, hãy hỏi thêm.
+Khách cần cung cấp ĐỦ 3 thông tin để lên đơn: Tên, SĐT, và Địa chỉ giao hàng CỤ THỂ (Bắt buộc phải có đủ Tỉnh/Thành Phố, Quận/Huyện).
+Ví dụ: "12 Nguyễn Lương Bằng" là CHƯA ĐỦ. Bạn tuyệt đối không được lên đơn mà phải hỏi thêm "Anh/chị ở đường Nguyễn Lương Bằng thuộc Quận/Huyện, Tỉnh/Thành phố nào ạ?".
+Chỉ kích hoạt lệnh tạo đơn (is_ordering: true) khi ĐÃ ĐỦ cả 3 thông tin trên dựa vào lịch sử chat. Nếu thiếu, hãy hỏi thêm.
 
 BẠN PHẢI TRẢ VỀ CHUẨN JSON SAU:
 {
